@@ -7,7 +7,8 @@ KeyboardMouseInput::KeyboardMouseInput(sf::Window &window) :
 mWindow(window),
 mScreenCenter(window.getSize().x / 2, window.getSize().y / 2),
 mButtonStates(Input::ButtonCount),
-mKeyMap(sf::Keyboard::KeyCount + sf::Mouse::ButtonCount) {
+mKeyMap(sf::Keyboard::KeyCount + sf::Mouse::ButtonCount),
+mIsMouseLocked(false) {
     // Disable key event repeating
     mWindow.setKeyRepeatEnabled(false);
 }
@@ -26,6 +27,11 @@ bool KeyboardMouseInput::isButtonUp(Button button) const {
 
 sf::Vector2f KeyboardMouseInput::getCursorPosition() const {
     return mCursor;
+}
+
+sf::Vector2f KeyboardMouseInput::getAxes() const {
+    return sf::Vector2f(mCursor.x / mWindow.getSize().x,
+                        mCursor.y / mWindow.getSize().y);
 }
 
 void KeyboardMouseInput::preUpdate() {
@@ -105,7 +111,6 @@ void KeyboardMouseInput::postUpdate() {
         mCursor.x += mickey.x;
         mCursor.y += mickey.y;
         
-        sf::Vector2i winBounds;
         mCursor.x = std::min(std::max(mCursor.x, 0.f),
                              (float)mWindow.getSize().x);
         mCursor.y = std::min(std::max(mCursor.y, 0.f),

@@ -3,11 +3,15 @@
 #include <SFML/Window/Event.hpp>
 #include "EntityFixture.h"
 
-void emptyCallback(const sf::Time &time) { }
+void emptyCallback(EntityFixture &fixture, const sf::Time &time) { }
+void emptyHandler(EntityFixture &fixture, const sf::Event &event) { }
+void emptyDraw(EntityFixture &fixture) { }
 
 EntityFixture::EntityFixture() :
 mWindow(sf::VideoMode(640, 480), "Entity Testing Fixture", sf::Style::Close),
-mRenderer(new da::SpatialRenderer(mWindow)) {
+mView(sf::FloatRect(0.f, 0.f, 320.f, 240.f)),
+mRenderer(new da::SpatialRenderer(mWindow)),
+mInput(mWindow) {
     mManager.addBehavior(mRenderer);
 }
 
@@ -27,6 +31,10 @@ sf::RenderWindow &EntityFixture::GetWindow() {
     return mWindow;
 }
 
+sf::View &EntityFixture::GetView() {
+    return mView;
+}
+
 da::ContentManager &EntityFixture::GetContent() {
     return mContent;
 }
@@ -39,7 +47,13 @@ da::SpatialRenderer &EntityFixture::GetRenderer() {
     return *mRenderer;
 }
 
-void EntityFixture::Run(std::function<void (const sf::Time &)> callback) {
+KeyboardMouseInput &EntityFixture::GetInput() {
+    return mInput;
+}
+
+void EntityFixture::Run(std::function<void (EntityFixture &, const sf::Time &)> callback,
+        std::function<void (EntityFixture &, const sf::Event &)> handler,
+        std::function<void (EntityFixture &)> draw) {
     sf::Clock frameClock;
     sf::Time frameTime;
     
@@ -51,11 +65,18 @@ void EntityFixture::Run(std::function<void (const sf::Time &)> callback) {
         while (mWindow.isOpen()) {
             // Check for exit events
             sf::Event event;
+            
+            mInput.preUpdate();
             while (mWindow.pollEvent(event)) {
+                mInput.handleEvent(event);
+                
                 if (event.type == sf::Event::Closed) {
                     mWindow.close();
                 }
+                
+                handler(*this, event);
             }
+            mInput.postUpdate();
             
             // Update delta time
             frameTime = frameClock.restart();
@@ -69,13 +90,16 @@ void EntityFixture::Run(std::function<void (const sf::Time &)> callback) {
             }
             
             mWindow.clear();
+            mWindow.setView(mView);
             
             // Call the provided custom loop function
-            callback(frameTime);
+            callback(*this, frameTime);
             
             // Update Spatial Renderer
             mRenderer->update(frameTime);
+            draw(*this);
             
+            mWindow.setView(mWindow.getDefaultView());
             mWindow.draw(fpsText);
             
             mWindow.display();

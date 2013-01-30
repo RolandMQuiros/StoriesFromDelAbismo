@@ -6,6 +6,7 @@
 struct Player : public da::Attribute<Player> {
     float walkSpeed;
     float direction;
+    float viewDistance;
 };
 
 #endif

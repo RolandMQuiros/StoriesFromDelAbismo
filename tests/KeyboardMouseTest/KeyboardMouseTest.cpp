@@ -50,6 +50,8 @@ TEST_F(InputFixture, PressReleaseTest) {
     
     while (running) {
         sf::Event event;
+        
+        input.preUpdate();
         while (window.pollEvent(event)) {
             input.handleEvent(event);
             
@@ -58,16 +60,16 @@ TEST_F(InputFixture, PressReleaseTest) {
             if (event.type == sf::Event::KeyPressed) {
                 switch (event.key.code) {
                     case sf::Keyboard::W:
-                        EXPECT_EQ(input.isButtonDown(Input::Up), true);
+                        ASSERT_EQ(input.isButtonDown(Input::Up), true);
                         break;
                     case sf::Keyboard::A:
-                        EXPECT_EQ(input.isButtonDown(Input::Left), true);
+                        ASSERT_EQ(input.isButtonDown(Input::Left), true);
                         break;
                     case sf::Keyboard::S:
-                        EXPECT_EQ(input.isButtonDown(Input::Down), true);
+                        ASSERT_EQ(input.isButtonDown(Input::Down), true);
                         break;
                     case sf::Keyboard::D:
-                        EXPECT_EQ(input.isButtonDown(Input::Right), true);
+                        ASSERT_EQ(input.isButtonDown(Input::Right), true);
                         break;
                     case sf::Keyboard::Escape:
                         running = false;
@@ -77,31 +79,32 @@ TEST_F(InputFixture, PressReleaseTest) {
             } else if (event.type == sf::Event::KeyReleased) {
                 switch (event.key.code) {
                     case sf::Keyboard::W:
-                        EXPECT_EQ(input.isButtonUp(Input::Up), true);
+                        ASSERT_EQ(input.isButtonUp(Input::Up), true);
                         remaining.erase("W");
                         break;
                     case sf::Keyboard::A:
-                        EXPECT_EQ(input.isButtonUp(Input::Left), true);
+                        ASSERT_EQ(input.isButtonUp(Input::Left), true);
                         remaining.erase("A");
                         break;
                     case sf::Keyboard::S:
-                        EXPECT_EQ(input.isButtonUp(Input::Down), true);
+                        ASSERT_EQ(input.isButtonUp(Input::Down), true);
                         remaining.erase("S");
                         break;
                     case sf::Keyboard::D:
-                        EXPECT_EQ(input.isButtonUp(Input::Right), true);
+                        ASSERT_EQ(input.isButtonUp(Input::Right), true);
                         remaining.erase("D");
                         break;
                 }
             } else if (event.type == sf::Event::MouseButtonPressed &&
                        event.mouseButton.button == sf::Mouse::Left) {
-                EXPECT_EQ(input.isButtonDown(Input::Shoot), true);
+                ASSERT_EQ(input.isButtonDown(Input::Shoot), true);
             } else if (event.type == sf::Event::MouseButtonReleased &&
                        event.mouseButton.button == sf::Mouse::Left) {
-                EXPECT_EQ(input.isButtonUp(Input::Shoot), true);
+                ASSERT_EQ(input.isButtonUp(Input::Shoot), true);
                 remaining.erase("Mouse1");
             }
         }
+        input.postUpdate();
         
         if (remaining.empty()) {
             running = false;
@@ -112,6 +115,108 @@ TEST_F(InputFixture, PressReleaseTest) {
                  iter != remaining.end(); iter++) {
                 ss << ' ' << *iter;
             }
+            
+            debugText.setString(ss.str());
+        }
+        
+        window.clear();
+        window.draw(description);
+        window.draw(debugText);
+        window.display();
+    }
+}
+
+TEST_F(InputFixture, HeldTest) {
+    sf::Text description;
+    description.setCharacterSize(12);
+    description.setString("Here, we're testing if the KeyboardMouseInput class "
+        "correctly identifies key hold states.\nTo complete the test, "
+        "press the buttons listed.");
+    
+    sf::Text debugText;
+    debugText.setCharacterSize(16);
+    debugText.setPosition(36.f, 36.f);
+    
+    // Buttons left to verify
+    std::set<std::string> remaining { "W", "A", "S", "D", "Mouse1" };
+    // Triggers for each button
+    bool triggered[5] = { 0 };
+    
+    bool running = true;
+    
+    while (running) {
+        sf::Event event;
+        input.preUpdate();
+        
+        // Check if held state was properly assigned
+        if (triggered[0] && remaining.find("W") != remaining.end()) {
+            ASSERT_EQ(input.isButtonHeld(Input::Up), true);
+            remaining.erase("W");
+        }
+        if (triggered[1] && remaining.find("A") != remaining.end()) {
+            ASSERT_EQ(input.isButtonHeld(Input::Left), true);
+            remaining.erase("A");
+        }
+        if (triggered[2] && remaining.find("S") != remaining.end()) {
+            ASSERT_EQ(input.isButtonHeld(Input::Down), true);
+            remaining.erase("S");
+        }
+        if (triggered[3] && remaining.find("D") != remaining.end()) {
+            ASSERT_EQ(input.isButtonHeld(Input::Right), true);
+            remaining.erase("D");
+        }
+        if (triggered[4] && remaining.find("Mouse1") != remaining.end()) {
+            ASSERT_EQ(input.isButtonHeld(Input::Shoot), true);
+            remaining.erase("Mouse1");
+        }
+        
+        while (window.pollEvent(event)) {
+            input.handleEvent(event);
+            
+            // Check for keypress events.  After keypress, we should 
+            if (event.type == sf::Event::KeyPressed) {
+                switch (event.key.code) {
+                    case sf::Keyboard::W:
+                        triggered[0] = true;
+                        break;
+                    case sf::Keyboard::A:
+                        triggered[1] = true;
+                        break;
+                    case sf::Keyboard::S:
+                        triggered[2] = true;
+                        break;
+                    case sf::Keyboard::D:
+                        triggered[3] = true;
+                        break;
+                    case sf::Keyboard::Escape:
+                        running = false;
+                        FAIL() << "Skipped test";
+                        break;
+                }
+            } else if (event.type == sf::Event::MouseButtonPressed &&
+                       event.mouseButton.button == sf::Mouse::Left) {
+                triggered[4] = true;
+            }
+        }
+        input.postUpdate();
+        
+        if (remaining.empty()) {
+            running = false;
+            SUCCEED();
+        } else {
+            std::stringstream ss;
+            for (std::set<std::string>::iterator iter = remaining.begin();
+                 iter != remaining.end(); iter++) {
+                ss << ' ' << *iter;
+            }
+            
+            ss << std::endl << std::endl
+               << "Button states: " << std::endl
+               << "\tUp:\t" << input.isButtonHeld(Input::Up) << std::endl
+               << "\tLeft:\t" << input.isButtonHeld(Input::Left) << std::endl
+               << "\tDown:\t" << input.isButtonHeld(Input::Down) << std::endl
+               << "\tRight:\t" << input.isButtonHeld(Input::Right) << std::endl
+               << "\tMouse1:\t" << input.isButtonHeld(Input::Shoot);
             
             debugText.setString(ss.str());
         }

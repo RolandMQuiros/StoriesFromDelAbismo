@@ -1,6 +1,7 @@
 set(DEPENDS
     ${GAME_SRC}/CardinalDirection.cpp
     ${GAME_SRC}/ColliderBehavior.cpp
+    ${GAME_SRC}/KeyboardMouseInput.cpp
     ${GAME_SRC}/Poses.cpp
     ${GAME_SRC}/Pose.cpp
     ${GAME_SRC}/Sprite.cpp

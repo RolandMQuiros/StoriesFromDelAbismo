@@ -56,6 +56,7 @@ public:
      *   The position of the cursor
      */
     virtual sf::Vector2f getCursorPosition() const = 0;
+    virtual sf::Vector2f getAxes() const = 0;
     /**
      * Updates states that change with every logic frame, <em>before</em>
      * handling window events.

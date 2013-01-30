@@ -1,11 +1,17 @@
+#include <iostream>
 #include <gtest/gtest.h>
+
+#include <SFML/Graphics/View.hpp>
+#include <SFML/Graphics/CircleShape.hpp>
 
 #include <da/Depth.h>
 #include <da/Transform.h>
 #include <da/Spatial.h>
 
 #include <CardinalDirection.h>
+#include <KeyboardMouseInput.h>
 
+// Attributes
 #include <Collider.h>
 #include <Poses.h>
 #include <Player.h>
@@ -13,6 +19,7 @@
 #include <TransformHistory.h>
 #include <Velocities.h>
 
+// Behaviors
 #include <Walker.h>
 #include <PlayerUpdater.h>
 #include <PoseUpdater.h>
@@ -23,22 +30,43 @@
 
 #include <EntityFixture.h>
 
-da::BehaviorPtr playerUpdater(new PlayerUpdater);
+da::EntityPtr entity;
+da::BehaviorPtr playerUpdater;
 da::BehaviorPtr velocitiesUpdater(new VelocitiesUpdater);
 da::BehaviorPtr walker(new Walker);
 da::BehaviorPtr poseUpdater(new PoseUpdater);
 da::BehaviorPtr xformHistorian(new TransformHistorian);
 
-void update(const sf::Time &delta) {
+sf::CircleShape dot(1.f, 6);
+
+void update(EntityFixture &fixture, const sf::Time &delta) {
     playerUpdater->update(delta);
     velocitiesUpdater->update(delta);
     walker->update(delta);
     poseUpdater->update(delta);
     xformHistorian->update(delta);
+    
+    dot.setPosition(fixture.GetInput().getCursorPosition());
+}
+
+void draw(EntityFixture &fixture) {
+    fixture.GetWindow().setView(fixture.GetWindow().getDefaultView());
+    fixture.GetWindow().draw(dot);
 }
 
 TEST_F(EntityFixture, PlayerTest) {
-    // Add behaviors    
+    GetInput().assignKey(sf::Keyboard::W, Input::Up);
+    GetInput().assignKey(sf::Keyboard::A, Input::Left);
+    GetInput().assignKey(sf::Keyboard::S, Input::Down);
+    GetInput().assignKey(sf::Keyboard::D, Input::Right);
+    GetInput().assignMouseButton(sf::Mouse::Left, Input::Shoot);
+    GetInput().setMouseLock(true);
+    GetWindow().setMouseCursorVisible(false);
+    
+    dot.setFillColor(sf::Color::Red);
+    
+    // Add behaviors
+    playerUpdater = da::BehaviorPtr(new PlayerUpdater(GetView(), GetInput()));
     GetManager().addBehavior(playerUpdater);
     GetManager().addBehavior(velocitiesUpdater);
     GetManager().addBehavior(walker);
@@ -49,7 +77,7 @@ TEST_F(EntityFixture, PlayerTest) {
     GetRenderer().registerSpatial<SpriteSpatial>();
     
     // Create entity
-    da::EntityPtr entity = GetManager().create();
+    entity = GetManager().create();
     entity->addAttribute(new da::Transform);
     entity->addAttribute(new da::Depth);
     
@@ -81,10 +109,10 @@ TEST_F(EntityFixture, PlayerTest) {
     
     Player *player = new Player;
     player->walkSpeed = 100.f;
+    player->viewDistance = 40.f;
     entity->addAttribute(player);
     
     GetManager().refresh(entity);
     
-    
-    Run(update);
+    Run(update, emptyHandler, draw);
 }

@@ -59,9 +59,7 @@ void Camera::update(const sf::Time &deltaTime) {
         }
         centroid.x /= mTargets.size();
         centroid.y /= mTargets.size();
-        mDestination = centroid;
-        
-        
+        mDestination = centroid;        
     }
     
     // Center camera on destination

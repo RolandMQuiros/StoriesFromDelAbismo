@@ -14,6 +14,7 @@ public:
     bool isButtonHeld(Input::Button button) const;
     bool isButtonUp  (Input::Button button) const;
     sf::Vector2f getCursorPosition() const;
+    sf::Vector2f getAxes() const;
     void preUpdate();
     void handleEvent(const sf::Event &event);
     void postUpdate();
